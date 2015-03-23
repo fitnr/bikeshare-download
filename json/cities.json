@@ -1,0 +1,22 @@
+{
+    "nyc": [
+        {
+            "url": "https://s3.amazonaws.com/tripdata/%Y%m-citibike-tripdata.zip",
+            "start": "2013-07-01",
+            "increment": 1
+        }
+    ],
+    "dc": [
+        {
+            "url": "https://www.capitalbikeshare.com/assets/files/trip-history-data/{2010,2011}-Q{1,2,3,4}-Trips-History-Data.zip"
+        },
+        {
+            "url": "https://www.capitalbikeshare.com/assets/files/trip-history-data/{2013}-Q{1,2,3}-Trips-History-Data.zip"
+        },
+        {
+            "start": "2013-10-01",
+            "url": "https://www.capitalbikeshare.com/assets/files/trip-history-data/%Y-%Q#-quarter.zip",
+            "increment": 1
+        }
+    ]
+}
