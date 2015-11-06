@@ -113,7 +113,7 @@ $(DATA)/chi/2013-stn.csv: data/chi/2013.zip
 	unzip -p $< Divvy_Stations_Trips_2013/Divvy_Stations_2013.csv > $@
 
 $(DATA)/chi/2014-1-stn.csv: data/chi/2014-1.zip
-	unzip -p $< Divvy_Stations_2014-Q1Q2.xlsx | j -q - > $@
+	unzip -p $< Divvy_Stations_2014-Q1Q2.xlsx | node_modules/.bin/j -q - > $@
 
 $(DATA)/chi/2014-2-stn.csv: data/chi/2014-2.zip
 	unzip -p $< Divvy_Stations_Trips_2014_Q3Q4/Divvy_Stations_2014-Q3Q4.csv > $@
