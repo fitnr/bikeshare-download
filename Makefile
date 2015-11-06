@@ -76,7 +76,7 @@ mysql-load-dc-%: $(DATA)/dc/%.csv schema/dc.sql | mysql-create-dc
 	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
 	($(subst $(space),$(comma) ,$(DC_FIELDS))) \
 	SET starttime=$(call DATE_FORMAT,@starttime), \
-	stoptime=$(call DATE_FORMAT,@endtime), \
+	endtime=$(call DATE_FORMAT,@endtime), \
 	duration=$(call DURATION_FORMAT,@duration);"
 
 mysql-load-chi-%: $(DATA)/chi/%.csv schema/chi.sql | mysql-create-chi
