@@ -112,25 +112,25 @@ $(DATA)/dc/%.csv: $(DATA)/dc/%.zip ; unzip -p $< > $@
 $(DATA)/chi/2013-stn.csv: data/chi/2013.zip
 	unzip -p $< Divvy_Stations_Trips_2013/Divvy_Stations_2013.csv > $@
 
-$(DATA)/chi/2014-1-stn.csv: data/chi/2014-1.zip
+$(DATA)/chi/2014-1-stn.csv: data/chi/2014-01.zip
 	unzip -p $< Divvy_Stations_2014-Q1Q2.xlsx | node_modules/.bin/j -q - > $@
 
-$(DATA)/chi/2014-2-stn.csv: data/chi/2014-2.zip
+$(DATA)/chi/2014-2-stn.csv: data/chi/2014-07.zip
 	unzip -p $< Divvy_Stations_Trips_2014_Q3Q4/Divvy_Stations_2014-Q3Q4.csv > $@
 
-$(DATA)/chi/2015-1-stn.csv: data/chi/2015-1.zip
+$(DATA)/chi/2015-1-stn.csv: data/chi/2015-01.zip
 	unzip -p $< Divvy_Stations_2015.csv > $@
 
 $(DATA)/chi/2013.csv: data/chi/2013.zip
 	unzip -p $< Divvy_Stations_Trips_2013/Divvy_Trips_2013.csv > $@
 
-$(DATA)/chi/2014-1.csv: data/chi/2014-1.zip
+$(DATA)/chi/2014-01.csv: data/chi/2014-01.zip
 	unzip -p $< Divvy_Trips_2014_Q1Q2.csv > $@
 
-$(DATA)/chi/2014-Q3-07.csv $(DATA)/chi/2014-Q4.csv: $(DATA)/chi/%.csv: data/chi/2014-2.zip
+$(DATA)/chi/2014-Q3-07.csv $(DATA)/chi/2014-Q4.csv: $(DATA)/chi/%.csv: data/chi/2014-07.zip
 	unzip -p $< Divvy_Stations_Trips_2014_Q3Q4/Divvy_Trips_$*.csv > $@	
 
-$(DATA)/chi/2015-Q2.csv $(DATA)/chi/2015-Q1.csv: data/chi/%.csv: data/chi/2015-1.zip
+$(DATA)/chi/2015-Q2.csv $(DATA)/chi/2015-Q1.csv: data/chi/%.csv: data/chi/2015-01.zip
 	unzip -p $< Divvy_Trips_$*.csv > $@
 
 # download zips
