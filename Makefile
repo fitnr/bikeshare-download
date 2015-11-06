@@ -43,18 +43,18 @@ CHI_FIELDS = tripid @starttime @endtime bikeid duration startid \
 .PHONY: all csv-% mysql-%
 
 all:
-	@echo available tasks: mysql-nyc mysql-dc csv-nyc csv-dc
+	@echo available tasks: mysql-nyc mysql-dc csv-nyc csv-dc mysql-chicago csv-chicago
 
-mysql-nyc: $(foreach x,$(NYCS),mysql-load-nyc-$x)
-csv-nyc: $(foreach x,$(NYCS),$(DATA)/nyc/$x.csv)
+mysql-nyc: $(foreach x,$(NYC_TRIPS),mysql-load-nyc-$x)
+csv-nyc: $(foreach x,$(NYC_TRIPS),$(DATA)/nyc/$x.csv)
 
-mysql-dc: $(foreach x,$(DCS),mysql-load-dc-$x)
-csv-dc: $(foreach x,$(DCS),$(DATA)/dc/$x.csv)
+mysql-dc: $(foreach x,$(DC_TRIPS),mysql-load-dc-$x)
+csv-dc: $(foreach x,$(DC_TRIPS),$(DATA)/dc/$x.csv)
 
-mysql-chi: $(foreach x,$(CHIS),mysql-load-chi-$x) mysql-stations-chi
-mysql-stations-chi: $(foreach x,$(CHI_STATIONS),mysql-station-$x)
-csv-chi: $(foreach x,$(CHIS),$(DATA)/chi/$x.csv)
-zip-chi: $(foreach x,$(CHIS),$(DATA)/chi/$x.zip)
+mysql-chicago: $(foreach x,$(CHI_TRIPS),mysql-load-chi-$x) mysql-stations-chicago
+mysql-stations-chicago: $(foreach x,$(CHI_STATIONS),mysql-station-$x)
+csv-chicago: $(foreach x,$(CHI_TRIPS),$(DATA)/chi/$x.csv) $(foreach x,$(CHI_STATIONS),$(DATA)/chi/$x-stn.csv)
+zip-chicago: $(foreach x,$(CHI_TRIPS),$(DATA)/chi/$x.zip)
 
 # load into mysql
 # load up stations table with new stations
@@ -137,7 +137,7 @@ $(DATA)/%.zip: | $$(@D)
 $(DATA) data/nyc data/dc data/chi geo: ; mkdir -p $@
 
 # geo stuff
-mysql-nyc-boroughs: geo/nycstations_borough.csv
+mysql-boroughs: geo/nycstations_borough.csv
 	tail +2 $< | \
 	sed -E 's/([0-9]+),([0-9]+)/UPDATE nyc_stations SET borough=\2 WHERE id=\1;/' | \
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE)
