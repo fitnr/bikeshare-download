@@ -5,12 +5,16 @@ PASS ?=
 CURL = curl
 CURLFLAGS = --silent
 
+OGR = ogr2ogr
+
 DATABASE = bikesharedata
 DATA = data
 
 comma = ,
 empty =
 space = $(empty) $(empty)
+
+BOROUGHFILE = http://www.nyc.gov/html/dcp/download/bytes/nybbwi_15c.zip
 
 DATE_FORMAT = CASE WHEN POSITION('/' IN $1) \
 	THEN STR_TO_DATE($1, '%m/%e/%Y %T') \
@@ -94,4 +98,26 @@ $(DATA)/%.csv: $(DATA)/%.zip
 $(DATA)/%.zip: | $$(@D)
 	$(CURL) $(CURLFLAGS) --location https://$($(subst /,_,$*)) -o $@
 
+$(DATA) data/nyc data/dc geo: ; mkdir -p $@
 
+# geo stuff
+mysql-nyc-boroughs: geo/nycstations_borough.csv
+	tail +2 $< | \
+	sed -E 's/([0-9]+),([0-9]+)/UPDATE nyc_stations SET borough=\2 WHERE id=\1;/' | \
+	$(MYSQL) $(MYSQLFLAGS) $(DATABASE)
+
+geo/nycstations_borough.csv: geo/nycstations.csv geo/nybbwi.shp
+	$(OGR) -f CSV $@ $< -overwrite -dialect sqlite \
+	-sql "SELECT stn.id id, BoroCode borough \
+	FROM $(basename $(<F)) stn, '$(filter %nybbwi.shp,$^)'.nybbwi boro \
+	WHERE ST_Contains((boro.Geometry), MakePoint(CAST(stn.lon as REAL), CAST(stn.lat AS REAL), 4326))"
+
+geo/nycstations.csv: | geo
+	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "SELECT * FROM nyc_stations" | \
+	sed "s/'/\'/;s/	/\",\"/g;s/^/\"/;s/$$/\"/;s/\n//g" > $@
+
+geo/nybbwi.shp: geo/nybbwi_15c.zip
+	$(OGR) $@ /vsizip/$</nybbwi_15c/nybbwi.shp -s_srs EPSG:2263 -t_srs EPSG:4326 -select BoroName,BoroCode
+
+geo/nybbwi_15c.zip: | geo
+	$(CURL) $(CURLFLAGS) $(BOROUGHFILE) -o $@
