@@ -1,4 +1,4 @@
-include nyc.ini
+include config/nyc.ini
 
 MYSQL = mysql --user="$(USER)" $(PASSFLAG)$(PASS)
 PASSFLAG = -p
