@@ -30,6 +30,10 @@ DURATION_FORMAT = CASE WHEN LOCATE('h', $1) \
 	THEN TIME_TO_SEC(STR_TO_DATE($1, '%kh %im %Ss')) \
 	ELSE $1/1000 END
 
+SELECT_COUNT = SELECT COUNT(*) '' FROM $1_trips WHERE starttime >= '$2-01' \
+	    AND starttime < ADDDATE('$2-01', INTERVAL 1 MONTH)" | \
+	    xargs
+
 include config/nyc.ini
 
 NYC_FIELDS = duration @starttime @endtime startid startname \
@@ -51,41 +55,47 @@ CHI_FIELDS = tripid @starttime @endtime bikeid duration startid \
 all:
 	@echo available tasks: mysql-nyc mysql-dc csv-nyc csv-dc mysql-chicago csv-chicago
 
-mysql-nyc: $(foreach x,$(NYC_TRIPS),mysql-load-nyc-$x)
+NYC_MYSQL_TASKS = $(foreach x,$(NYC_TRIPS),mysql-load-nyc-$x)
+mysql-nyc: $(NYC_MYSQL_TASKS)
 csv-nyc: $(foreach x,$(NYC_TRIPS),$(DATA)/nyc/$x.csv)
 
-mysql-dc: $(foreach x,$(DC_TRIPS),mysql-load-dc-$x)
+DC_MYSQL_TASKS = $(foreach x,$(DC_TRIPS),mysql-load-dc-$x)
+mysql-dc: $(DC_MYSQL_TASKS)
 csv-dc: $(foreach x,$(DC_TRIPS),$(DATA)/dc/$x.csv)
 
-mysql-chicago: $(foreach x,$(CHI_TRIPS),mysql-load-chi-$x) mysql-stations-chicago
+CHI_MYSQL_TASKS = $(foreach x,$(CHI_TRIPS),mysql-load-chi-$x)
+mysql-chicago: $(CHI_MYSQL_TASKS) mysql-stations-chicago
 mysql-stations-chicago: $(foreach x,$(CHI_STATIONS),mysql-station-$x)
 csv-chicago: $(foreach x,$(CHI_TRIPS),$(DATA)/chi/$x.csv) $(foreach x,$(CHI_STATIONS),$(DATA)/chi/$x-stn.csv)
 zip-chicago: $(foreach x,$(CHI_TRIPS),$(DATA)/chi/$x.zip)
 
 # load into mysql
 # load up stations table with new stations
-mysql-load-nyc-%: $(DATA)/nyc/%.csv schema/nyc.sql | mysql-create-nyc
+$(NYC_MYSQL_TASKS): mysql-load-nyc-%: $(DATA)/nyc/%.csv schema/nyc.sql | mysql-create-nyc
+	if [[ 0 -eq $$($(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "$(call SELECT_COUNT,nyc,$*)") ]]; then \
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE nyc_trips \
-	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
-	($(subst $(space),$(comma) ,$(NYC_FIELDS))) \
-	SET starttime=$(call DATE_FORMAT,@starttime), \
-	endtime=$(call DATE_FORMAT,@endtime);"
-
+	    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
+	    ($(subst $(space),$(comma) ,$(NYC_FIELDS))) \
+	    SET starttime=$(call DATE_FORMAT,@starttime), \
+	    endtime=$(call DATE_FORMAT,@endtime);"; \
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "INSERT INTO nyc_stations (id, name, lat, lon) \
-	SELECT distinct startid, startname, startlat, startlon FROM nyc_trips t \
-	LEFT JOIN nyc_stations s ON (t.startid=s.id) \
-	WHERE starttime >= '$*-01' AND starttime < ADDDATE('$*-01', INTERVAL 1 MONTH) \
-	AND s.id IS NULL;"
+	    SELECT distinct startid, startname, startlat, startlon FROM nyc_trips t \
+	    LEFT JOIN nyc_stations s ON (t.startid=s.id) \
+	    WHERE starttime >= '$*-01' AND starttime < ADDDATE('$*-01', INTERVAL 1 MONTH) \
+	    AND s.id IS NULL"; \
+	fi
 
-mysql-load-dc-%: $(DATA)/dc/%.csv schema/dc.sql | mysql-create-dc
+$(DC_MYSQL_TASKS): mysql-load-dc-%: $(DATA)/dc/%.csv schema/dc.sql | mysql-create-dc
+	if [[ 0 -eq $$($(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "$(call SELECT_COUNT,dc,$*)") ]]; then \
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE dc_trips \
 	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
 	($(subst $(space),$(comma) ,$(DC_FIELDS))) \
 	SET starttime=$(call DATE_FORMAT,@starttime), \
 	endtime=$(call DATE_FORMAT,@endtime), \
-	duration=$(call DURATION_FORMAT,@duration);"
+	duration=$(call DURATION_FORMAT,@duration);" \
+	fi
 
-mysql-load-chi-%: $(DATA)/chi/%.csv schema/chi.sql | mysql-create-chi
+$(CHI_MYSQL_TASKS): mysql-load-chi-%: $(DATA)/chi/%.csv schema/chi.sql | mysql-create-chi
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE chi_trips \
 	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
 	($(subst $(space),$(comma) ,$(CHI_FIELDS))) \
