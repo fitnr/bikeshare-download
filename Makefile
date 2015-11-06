@@ -35,12 +35,6 @@ include config/dc.ini
 DC_FIELDS = @duration @starttime @endtime \
 	startname endname bikeid usertype
 
-DCS = 2010-Q1 2010-Q2 2010-Q3 2010-Q4 \
-	2011-Q1 2011-Q2 2011-Q3 2011-Q4 \
-	2012-Q1 2012-Q2 2012-Q3 2012-Q4 \
-	2013-Q1 2013-Q2 2013-Q3 2013-Q3 \
-	2014-Q1 2014-Q2 2014-Q3 2014-Q4 \
-	2015-Q1 2015-Q2
 
 .PHONY: all csv-% mysql-%
 
