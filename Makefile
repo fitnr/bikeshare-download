@@ -35,6 +35,10 @@ include config/dc.ini
 DC_FIELDS = @duration @starttime @endtime \
 	startname endname bikeid usertype
 
+include config/chi.ini
+
+CHI_FIELDS = tripid @starttime @endtime bikeid duration startid \
+	startname endid endname usertype gender birthyear
 
 .PHONY: all csv-% mysql-%
 
@@ -46,6 +50,11 @@ csv-nyc: $(foreach x,$(NYCS),$(DATA)/nyc/$x.csv)
 
 mysql-dc: $(foreach x,$(DCS),mysql-load-dc-$x)
 csv-dc: $(foreach x,$(DCS),$(DATA)/dc/$x.csv)
+
+mysql-chi: $(foreach x,$(CHIS),mysql-load-chi-$x) mysql-stations-chi
+mysql-stations-chi: $(foreach x,$(CHI_STATIONS),mysql-station-$x)
+csv-chi: $(foreach x,$(CHIS),$(DATA)/chi/$x.csv)
+zip-chi: $(foreach x,$(CHIS),$(DATA)/chi/$x.zip)
 
 # load into mysql
 # load up stations table with new stations
@@ -70,6 +79,18 @@ mysql-load-dc-%: $(DATA)/dc/%.csv schema/dc.sql | mysql-create-dc
 	stoptime=$(call DATE_FORMAT,@endtime), \
 	duration=$(call DURATION_FORMAT,@duration);"
 
+mysql-load-chi-%: $(DATA)/chi/%.csv schema/chi.sql | mysql-create-chi
+	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE chi_trips \
+	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
+	($(subst $(space),$(comma) ,$(CHI_FIELDS))) \
+	SET starttime=$(call DATE_FORMAT,@starttime), \
+	endtime=$(call DATE_FORMAT,@endtime)"
+
+mysql-station-%: $(DATA)/chi/%-stn.csv | mysql-create-chi
+	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE chi_stations \
+	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
+	(id, name, lat, lon, capacity, @null);"
+
 # mysql create databases
 mysql-create-%: schema/%.sql | mysql-create
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) < $<
@@ -78,8 +99,33 @@ mysql-create:
 	$(MYSQL) $(MYSQLFLAGS) -e "CREATE DATABASE IF NOT EXISTS $(DATABASE)"
 
 # unzip CSVs
-$(DATA)/%.csv: $(DATA)/%.zip
-	unzip -p $< > $@
+$(DATA)/nyc/%.csv: $(DATA)/nyc/%.zip ; unzip -p $< > $@
+$(DATA)/dc/%.csv: $(DATA)/dc/%.zip ; unzip -p $< > $@
+
+# chicago rules
+$(DATA)/chi/2013-stn.csv: data/chi/2013.zip
+	unzip -p $< Divvy_Stations_Trips_2013/Divvy_Stations_2013.csv > $@
+
+$(DATA)/chi/2014-1-stn.csv: data/chi/2014-1.zip
+	unzip -p $< Divvy_Stations_2014-Q1Q2.xlsx | j -q - > $@
+
+$(DATA)/chi/2014-2-stn.csv: data/chi/2014-2.zip
+	unzip -p $< Divvy_Stations_Trips_2014_Q3Q4/Divvy_Stations_2014-Q3Q4.csv > $@
+
+$(DATA)/chi/2015-1-stn.csv: data/chi/2015-1.zip
+	unzip -p $< Divvy_Stations_2015.csv > $@
+
+$(DATA)/chi/2013.csv: data/chi/2013.zip
+	unzip -p $< Divvy_Stations_Trips_2013/Divvy_Trips_2013.csv > $@
+
+$(DATA)/chi/2014-1.csv: data/chi/2014-1.zip
+	unzip -p $< Divvy_Trips_2014_Q1Q2.csv > $@
+
+$(DATA)/chi/2014-Q3-07.csv $(DATA)/chi/2014-Q4.csv: $(DATA)/chi/%.csv: data/chi/2014-2.zip
+	unzip -p $< Divvy_Stations_Trips_2014_Q3Q4/Divvy_Trips_$*.csv > $@	
+
+$(DATA)/chi/2015-Q2.csv $(DATA)/chi/2015-Q1.csv: data/chi/%.csv: data/chi/2015-1.zip
+	unzip -p $< Divvy_Trips_$*.csv > $@
 
 # download zips
 
@@ -88,7 +134,7 @@ $(DATA)/%.csv: $(DATA)/%.zip
 $(DATA)/%.zip: | $$(@D)
 	$(CURL) $(CURLFLAGS) --location https://$($(subst /,_,$*)) -o $@
 
-$(DATA) data/nyc data/dc geo: ; mkdir -p $@
+$(DATA) data/nyc data/dc data/chi geo: ; mkdir -p $@
 
 # geo stuff
 mysql-nyc-boroughs: geo/nycstations_borough.csv
@@ -111,3 +157,6 @@ geo/nybbwi.shp: geo/nybbwi_15c.zip
 
 geo/nybbwi_15c.zip: | geo
 	$(CURL) $(CURLFLAGS) $(BOROUGHFILE) -o $@
+
+.PHONY: install
+install: ; npm install
