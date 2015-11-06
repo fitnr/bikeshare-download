@@ -158,5 +158,8 @@ geo/nybbwi.shp: geo/nybbwi_15c.zip
 geo/nybbwi_15c.zip: | geo
 	$(CURL) $(CURLFLAGS) $(BOROUGHFILE) -o $@
 
-.PHONY: install
+.PHONY: install clean-%
+clean-nyc clean-chi clean-dc: clean-%:
+	$(MYSQL) $(MYSQLFLAGS) -e "DROP TABLE IF EXISTS $*_trips; DROP TABLE IF EXISTS $*_stations;"
+
 install: ; npm install
