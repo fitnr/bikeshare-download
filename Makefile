@@ -31,14 +31,14 @@ DURATION_FORMAT = CASE WHEN LOCATE('h', $1) \
 	ELSE $1/1000 END
 
 SELECT_COUNT = SELECT COUNT(*) '' FROM $1_trips WHERE starttime >= '$2-01' \
-	    AND starttime < ADDDATE('$2-01', INTERVAL 1 MONTH)" | \
-	    xargs
+	AND starttime < ADDDATE('$2-01', INTERVAL 1 MONTH)" | \
+	xargs
 
 include config/nyc.ini
 
 NYC_FIELDS = duration @starttime @endtime startid startname \
 	startlat startlon endid endname endlat endlon \
-    bikeid usertype birthyear gender
+	bikeid usertype birthyear gender
 
 include config/dc.ini
 
@@ -88,11 +88,11 @@ $(NYC_MYSQL_TASKS): mysql-load-nyc-%: $(DATA)/nyc/%.csv schema/nyc.sql | mysql-c
 $(DC_MYSQL_TASKS): mysql-load-dc-%: $(DATA)/dc/%.csv schema/dc.sql | mysql-create-dc
 	if [[ 0 -eq $$($(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "$(call SELECT_COUNT,dc,$*)") ]]; then \
 	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "LOAD DATA LOCAL INFILE '$<' INTO TABLE dc_trips \
-	FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
-	($(subst $(space),$(comma) ,$(DC_FIELDS))) \
-	SET starttime=$(call DATE_FORMAT,@starttime), \
-	endtime=$(call DATE_FORMAT,@endtime), \
-	duration=$(call DURATION_FORMAT,@duration);" \
+	    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES \
+	    ($(subst $(space),$(comma) ,$(DC_FIELDS))) \
+	    SET starttime=$(call DATE_FORMAT,@starttime), \
+	    endtime=$(call DATE_FORMAT,@endtime), \
+	    duration=$(call DURATION_FORMAT,@duration);" \
 	fi
 
 $(CHI_MYSQL_TASKS): mysql-load-chi-%: $(DATA)/chi/%.csv schema/chi.sql | mysql-create-chi
