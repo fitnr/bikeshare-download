@@ -165,7 +165,7 @@ geo/nycstations_borough.csv: geo/nycstations.csv geo/nybbwi.shp
 	WHERE ST_Contains((boro.Geometry), MakePoint(CAST(stn.lon as REAL), CAST(stn.lat AS REAL), 4326))"
 
 geo/nycstations.csv: | geo
-	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "SELECT * FROM nyc_stations" | \
+	$(MYSQL) $(MYSQLFLAGS) $(DATABASE) -e "SELECT * FROM nyc_stations WHERE borough IS NULL" | \
 	sed "s/'/\'/;s/	/\",\"/g;s/^/\"/;s/$$/\"/;s/\n//g" > $@
 
 geo/nybbwi.shp: geo/nybbwi_15c.zip
